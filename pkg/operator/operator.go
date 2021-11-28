@@ -277,6 +277,7 @@ func (o *Operator) setupAdmissionWebhooks(ctx context.Context, ors ...metav1.Own
 		crt,
 		[]metav1.GroupVersionResource{
 			monitoringv1alpha1.PodMonitoringResource(),
+			monitoringv1alpha1.OperatorConfigResource(),
 		},
 		ors...,
 	)
@@ -290,6 +291,12 @@ func (o *Operator) setupAdmissionWebhooks(ctx context.Context, ors ...metav1.Own
 	s.Register(
 		validatePath(monitoringv1alpha1.PodMonitoringResource()),
 		admission.ValidatingWebhookFor(&monitoringv1alpha1.PodMonitoring{}),
+	)
+	s.Register(
+		validatePath(monitoringv1alpha1.OperatorConfigResource()),
+		admission.WithCustomValidator(&monitoringv1alpha1.OperatorConfig{}, &operatorConfigValidator{
+			namespace: o.opts.PublicNamespace,
+		}),
 	)
 	return nil
 }
