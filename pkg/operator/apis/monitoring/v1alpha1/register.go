@@ -60,6 +60,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&PodMonitoring{},
 		&PodMonitoringList{},
+		&ClusterPodMonitoring{},
+		&ClusterPodMonitoringList{},
 		&Rules{},
 		&RulesList{},
 		&ClusterRules{},
