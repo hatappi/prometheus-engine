@@ -55,6 +55,7 @@ spec:
                 - selector
               properties:
                 endpoints:
+                  description: The endpoints to scrape on the selected pods.
                   type: array
                   items:
                     description: ScrapeEndpoint specifies a Prometheus metrics endpoint to scrape.
@@ -94,6 +95,13 @@ spec:
                             targetLabel:
                               description: Label to which the resulting value is written in a replace action. It is mandatory for replace actions. Regex capture groups are available.
                               type: string
+                      params:
+                        description: HTTP GET params to use when scraping.
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: string
                       path:
                         description: HTTP path to scrape metrics from. Defaults to "/metrics".
                         type: string
@@ -103,11 +111,37 @@ spec:
                           - type: integer
                           - type: string
                         x-kubernetes-int-or-string: true
+                      proxyUrl:
+                        description: Proxy URL to scrape through. Encoded passwords are not supported.
+                        type: string
+                      scheme:
+                        description: Protocol scheme to use to scrape.
+                        type: string
                       timeout:
                         description: Timeout for metrics scrapes. Must be a valid Prometheus duration. Must not be larger then the scrape interval.
                         type: string
+                limits:
+                  description: Limits to apply at scrape time.
+                  type: object
+                  properties:
+                    labelNameLength:
+                      description: Maximum label name length.
+                      type: integer
+                      format: int64
+                    labelValueLength:
+                      description: Maximum label value length.
+                      type: integer
+                      format: int64
+                    labels:
+                      description: Maximum number of labels accepted for a single sample.
+                      type: integer
+                      format: int64
+                    samples:
+                      description: Maximum number of samples accepted within a single scrape.
+                      type: integer
+                      format: int64
                 selector:
-                  description: A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.
+                  description: Label selector that specifies which pods are selected for this monitoring configuration.
                   type: object
                   properties:
                     matchExpressions:
@@ -137,7 +171,7 @@ spec:
                       additionalProperties:
                         type: string
                 targetLabels:
-                  description: TargetLabels configures labels for the discovered Prometheus targets.
+                  description: Label to add to the Prometheus target for discovered endpoints.
                   type: object
                   properties:
                     fromPod:
