@@ -17,6 +17,7 @@ package export
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"sync"
@@ -26,6 +27,7 @@ import (
 	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	gax "github.com/googleapis/gax-go/v2"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/pkg/errors"
@@ -35,6 +37,8 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/tsdb/record"
 	"google.golang.org/api/option"
+	metricpb "google.golang.org/genproto/googleapis/api/metric"
+	monitoredres "google.golang.org/genproto/googleapis/api/monitoredres"
 	monitoring_pb "google.golang.org/genproto/googleapis/monitoring/v3"
 	"google.golang.org/grpc"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -409,6 +413,47 @@ func (e *Exporter) Run(ctx context.Context) error {
 		return err
 	}
 	defer metricClient.Close()
+
+	level.Info(e.logger).Log("msg", "setup")
+	now := &timestamp.Timestamp{
+		Seconds: time.Now().Unix(),
+	}
+	req := &monitoring_pb.CreateTimeSeriesRequest{
+		Name: "projects/hatappi-nw-cfg-manager-test",
+		TimeSeries: []*monitoring_pb.TimeSeries{{
+			Metric: &metricpb.Metric{
+				Type: "custom.googleapis.com/custom_measurement",
+				Labels: map[string]string{
+					"environment": "STAGING",
+				},
+			},
+			Resource: &monitoredres.MonitoredResource{
+				Type: "gce_instance",
+				Labels: map[string]string{
+					"instance_id": "test-instance",
+					"zone":        "us-central1-f",
+				},
+			},
+			Points: []*monitoring_pb.Point{{
+				Interval: &monitoring_pb.TimeInterval{
+					StartTime: now,
+					EndTime:   now,
+				},
+				Value: &monitoring_pb.TypedValue{
+					Value: &monitoring_pb.TypedValue_Int64Value{
+						Int64Value: rand.Int63n(10),
+					},
+				},
+			}},
+		}},
+	}
+	level.Info(e.logger).Log("msg", "debug request", "req", fmt.Sprintf("%+v", req))
+
+	err = metricClient.CreateTimeSeries(ctx, req)
+	if err != nil {
+		level.Error(e.logger).Log("msg", "debug request error", "req", fmt.Sprintf("%+v", req), "error", err)
+	}
+	level.Info(e.logger).Log("msg", "success!!")
 
 	go e.seriesCache.run(ctx)
 
