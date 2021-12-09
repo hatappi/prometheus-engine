@@ -426,8 +426,9 @@ func createTest(ctx context.Context, logger log.Logger, send func(context.Contex
 	err := send(ctx, req)
 	if err != nil {
 		level.Error(logger).Log("msg", prefix+" debug request error", "req", fmt.Sprintf("%+v", req), "error", err)
+	} else {
+		level.Info(logger).Log("msg", prefix+" success!!")
 	}
-	level.Info(logger).Log("msg", prefix+" success!!")
 }
 
 // Run sends exported samples to Google Cloud Monitoring.
