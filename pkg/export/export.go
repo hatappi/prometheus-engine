@@ -387,34 +387,8 @@ const (
 	Version    = "0.1.1"
 )
 
-// Run sends exported samples to Google Cloud Monitoring.
-func (e *Exporter) Run(ctx context.Context) error {
-	clientOpts := []option.ClientOption{
-		option.WithGRPCDialOption(grpc.WithUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor)),
-	}
-	if e.opts.Endpoint != "" {
-		clientOpts = append(clientOpts, option.WithEndpoint(e.opts.Endpoint))
-	}
-	if e.opts.DisableAuth {
-		clientOpts = append(clientOpts,
-			option.WithoutAuthentication(),
-			option.WithGRPCDialOption(grpc.WithInsecure()),
-		)
-	}
-	if e.opts.CredentialsFile != "" {
-		clientOpts = append(clientOpts, option.WithCredentialsFile(e.opts.CredentialsFile))
-	}
-
-	// Identity User Agent for all gRPC requests.
-	clientOpts = append(clientOpts, option.WithUserAgent(ClientName+"/"+Version))
-
-	metricClient, err := monitoring.NewMetricClient(ctx, clientOpts...)
-	if err != nil {
-		return err
-	}
-	defer metricClient.Close()
-
-	level.Info(e.logger).Log("msg", "setup")
+func createTest(ctx context.Context, logger log.Logger, send func(context.Context, *monitoring_pb.CreateTimeSeriesRequest, ...gax.CallOption) error, prefix string) {
+	level.Info(logger).Log("msg", "setup")
 	now := &timestamp.Timestamp{
 		Seconds: time.Now().Unix(),
 	}
@@ -447,13 +421,43 @@ func (e *Exporter) Run(ctx context.Context) error {
 			}},
 		}},
 	}
-	level.Info(e.logger).Log("msg", "debug request", "req", fmt.Sprintf("%+v", req))
+	level.Info(logger).Log("msg", prefix+" debug request", "req", fmt.Sprintf("%+v", req))
 
-	err = metricClient.CreateTimeSeries(ctx, req)
+	err := send(ctx, req)
 	if err != nil {
-		level.Error(e.logger).Log("msg", "debug request error", "req", fmt.Sprintf("%+v", req), "error", err)
+		level.Error(logger).Log("msg", prefix+" debug request error", "req", fmt.Sprintf("%+v", req), "error", err)
 	}
-	level.Info(e.logger).Log("msg", "success!!")
+	level.Info(logger).Log("msg", prefix+" success!!")
+}
+
+// Run sends exported samples to Google Cloud Monitoring.
+func (e *Exporter) Run(ctx context.Context) error {
+	clientOpts := []option.ClientOption{
+		option.WithGRPCDialOption(grpc.WithUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor)),
+	}
+	if e.opts.Endpoint != "" {
+		clientOpts = append(clientOpts, option.WithEndpoint(e.opts.Endpoint))
+	}
+	if e.opts.DisableAuth {
+		clientOpts = append(clientOpts,
+			option.WithoutAuthentication(),
+			option.WithGRPCDialOption(grpc.WithInsecure()),
+		)
+	}
+	if e.opts.CredentialsFile != "" {
+		clientOpts = append(clientOpts, option.WithCredentialsFile(e.opts.CredentialsFile))
+	}
+
+	// Identity User Agent for all gRPC requests.
+	clientOpts = append(clientOpts, option.WithUserAgent(ClientName+"/"+Version))
+
+	metricClient, err := monitoring.NewMetricClient(ctx, clientOpts...)
+	if err != nil {
+		return err
+	}
+	defer metricClient.Close()
+
+	createTest(ctx, e.logger, metricClient.CreateTimeSeries, "[FIRST]")
 
 	go e.seriesCache.run(ctx)
 
@@ -668,6 +672,8 @@ func (b batch) send(
 				Name:       fmt.Sprintf("projects/%s", pid),
 				TimeSeries: l,
 			})
+			createTest(ctx, b.logger, sendOne, "[IN send func with ctx]")
+			createTest(sendCtx, b.logger, sendOne, "[IN send func with sendCtx]")
 			// level.Info(b.logger).Log("msg", "send batch", "size", len(l), "err", err, "pid", pid, "ts-dump", fmt.Sprintf("%+v", l))
 			if err != nil {
 				level.Error(b.logger).Log("msg", "send batch", "size", len(l), "err", err)
