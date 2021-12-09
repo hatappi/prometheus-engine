@@ -624,7 +624,7 @@ func (b batch) send(
 				TimeSeries: l,
 			})
 			if err != nil {
-				level.Error(b.logger).Log("msg", "send batch", "size", len(l), "err", err)
+				level.Error(b.logger).Log("msg", "send batch", "size", len(l), "err", err, "pid", pid, "ts", l)
 			}
 			samplesSent.Add(float64(len(l)))
 		}(pid, l)
