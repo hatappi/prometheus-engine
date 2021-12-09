@@ -169,7 +169,7 @@ func NewFlagOptions(a *kingpin.Application) *ExporterOpts {
 	a.Flag("export.endpoint", "GCM API endpoint to send metric data to.").
 		Default("monitoring.googleapis.com:443").StringVar(&opts.Endpoint)
 
-	a.Flag("export.credentials-file", "Credentials file for authentication with the GCM API.").
+	a.Flag("export.credentials-file", "Credentials file for authentication with the GCM API.!!!!!!!!!!!!!!!!!!!!!!!").
 		StringVar(&opts.CredentialsFile)
 
 	a.Flag("export.label.project-id", fmt.Sprintf("Default project ID set for all exported data. Prefer setting the external label %q in the Prometheus configuration if not using the auto-discovered default.", KeyProjectID)).
