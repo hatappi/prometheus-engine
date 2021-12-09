@@ -668,7 +668,7 @@ func (b batch) send(
 				Name:       fmt.Sprintf("projects/%s", pid),
 				TimeSeries: l,
 			})
-			level.Info(b.logger).Log("msg", "send batch", "size", len(l), "err", err, "pid", pid, "ts-dump", fmt.Sprintf("%+v", l))
+			// level.Info(b.logger).Log("msg", "send batch", "size", len(l), "err", err, "pid", pid, "ts-dump", fmt.Sprintf("%+v", l))
 			if err != nil {
 				level.Error(b.logger).Log("msg", "send batch", "size", len(l), "err", err)
 			}
